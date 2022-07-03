@@ -97,33 +97,19 @@ void UselessReverbAudioProcessor::changeProgramName (int index, const juce::Stri
 //==============================================================================
 void UselessReverbAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    const int NUM_DELAY_CHANNELS = 4;
-    const float DELAY_TIME_MIN = 0.10f;
-    const float DELAY_TIME_MAX = 0.20f;
-    if (m_delays.empty()) {
-        std::default_random_engine generator;
-        std::uniform_real_distribution<float> distribution(DELAY_TIME_MIN, DELAY_TIME_MAX);
-
-        for (int channel = 0; channel < NUM_DELAY_CHANNELS; ++channel) {
-            float delayTime = distribution(generator);
-            int numSamples = std::max(1, static_cast<int>(delayTime * sampleRate));
-            m_delays.push_back(std::make_unique<Delay>(numSamples));
-        }
-
-        m_mixMatrix = std::vector<float>{
-             0.7408,  0.3456, -0.3456,  0.4608,
-             0.3456,  0.5392,  0.4608, -0.6144,
-            -0.3456,  0.4608,  0.5392,  0.6144,
-             0.4608, -0.6144,  0.6144,  0.1808
-        };
+    for (int diffuserStep = 0; diffuserStep < m_diffusers.size(); ++diffuserStep) {
+        m_diffusers[diffuserStep] = std::make_unique<Diffuser>(sampleRate);
     }
+    m_feedbackLoop = std::make_unique<FeedbackLoop>(sampleRate);
+    m_reverbBuffer.setSize(NUM_REVERB_CHANNELS, samplesPerBlock);
+    m_reverbBuffer.clear();
 }
 
 void UselessReverbAudioProcessor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
-    m_delays.clear();
+    m_feedbackLoop.reset();
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -152,53 +138,45 @@ bool UselessReverbAudioProcessor::isBusesLayoutSupported (const BusesLayout& lay
 }
 #endif
 
-void UselessReverbAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void UselessReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    if (m_delays.empty() || m_mixMatrix.empty()) {
+    if (!m_feedbackLoop) {
         return;
     }
 
-    const int numIOChannels = buffer.getNumChannels();
-    const int numDelayChannels = m_delays.size();
     const int numSamples = buffer.getNumSamples();
+    const int numIOChannels = buffer.getNumChannels();
 
-    std::vector<float> mixedValues(numDelayChannels, 0.f);
+    // split the signal into multiple channels
+    for (int channel = 0; channel < NUM_REVERB_CHANNELS; ++channel) {
+        // TODO: use all channels of the input buffer, not just the first one
+        int sourceChannel = 0;
+        m_reverbBuffer.copyFrom(channel, 0, buffer, sourceChannel, 0, numSamples);
+    }
 
+    // do stuff with the m_reverbBuffer
+    std::array<float, NUM_REVERB_CHANNELS> slice;
     for (int sample = 0; sample < numSamples; ++sample) {
-        // calculate input value (avg of all input channels)
-        float inputValue = 0;
-        for (int channel = 0; channel < numIOChannels; ++channel) {
-            inputValue += buffer.getSample(channel, sample);
+        for (int channel = 0; channel < NUM_REVERB_CHANNELS; ++channel) {
+            slice[channel] = m_reverbBuffer.getSample(channel, sample);
         }
-        inputValue /= numIOChannels;
-
-        // clear the mixedValues
-        std::fill(mixedValues.begin(), mixedValues.end(), 0.f);
-
-        float outputValue = 0;
-
-        for (int channel = 0; channel < numDelayChannels; ++channel) {
-            float delayedValue = m_delays[channel]->read();
-            outputValue += delayedValue;
-
-            float dampenedValue = delayedValue * 0.85;
-            for (int mixChannel = 0; mixChannel < numDelayChannels; ++mixChannel) {
-                const float mixFactor = m_mixMatrix[channel * numDelayChannels + mixChannel];
-                mixedValues[mixChannel] += dampenedValue * mixFactor;
-            }
+        for (auto& diffuser : m_diffusers) {
+            diffuser->processSample(slice);
         }
-
-        for (int channel = 0; channel < numDelayChannels; ++channel) {
-            float sum = inputValue + mixedValues[channel];
-            m_delays[channel]->write(sum);
-            m_delays[channel]->next();
-        }
-
-        for (int channel = 0; channel < numIOChannels; ++channel) {
-            buffer.setSample(channel, sample, outputValue);
+        m_feedbackLoop->processSample(slice);
+        for (int channel = 0; channel < NUM_REVERB_CHANNELS; ++channel) {
+            m_reverbBuffer.setSample(channel, sample, slice[channel]);
         }
     }
+
+    // merge the signal
+    const float gain = 1.f / NUM_REVERB_CHANNELS;
+    for (int channel = 0; channel < NUM_REVERB_CHANNELS; ++channel) {
+        buffer.addFrom(0, 0, m_reverbBuffer, channel, 0, numSamples, gain);
+        buffer.addFrom(1, 0, m_reverbBuffer, channel, 0, numSamples, gain);
+    }
 }
+
 
 //==============================================================================
 bool UselessReverbAudioProcessor::hasEditor() const

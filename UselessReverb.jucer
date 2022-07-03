@@ -8,6 +8,12 @@
     <GROUP id="{F9775E04-CA1A-2A9C-A70D-DC6A24AFBCD8}" name="Source">
       <FILE id="lYuStA" name="Delay.cpp" compile="1" resource="0" file="Source/Delay.cpp"/>
       <FILE id="CV639Q" name="Delay.h" compile="0" resource="0" file="Source/Delay.h"/>
+      <FILE id="TXs1sC" name="Diffuser.cpp" compile="1" resource="0" file="Source/Diffuser.cpp"/>
+      <FILE id="DSPzaz" name="Diffuser.h" compile="0" resource="0" file="Source/Diffuser.h"/>
+      <FILE id="Qlgkl3" name="FeedbackLoop.cpp" compile="1" resource="0"
+            file="Source/FeedbackLoop.cpp"/>
+      <FILE id="RLr0VV" name="FeedbackLoop.h" compile="0" resource="0" file="Source/FeedbackLoop.h"/>
+      <FILE id="sHqJfj" name="MatrixUtils.h" compile="0" resource="0" file="Source/MatrixUtils.h"/>
       <FILE id="mm3QIP" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="LrZXzI" name="PluginProcessor.h" compile="0" resource="0"

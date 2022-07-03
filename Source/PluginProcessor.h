@@ -9,7 +9,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "Delay.h"
+#include "Diffuser.h"
+#include "FeedbackLoop.h"
 
 //==============================================================================
 /**
@@ -55,8 +56,10 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 private:
-    std::vector<std::unique_ptr<Delay>> m_delays;
-    std::vector<float> m_mixMatrix;
+    static const int NUM_REVERB_CHANNELS = 8;
+    std::array<std::unique_ptr<Diffuser>, 4> m_diffusers;
+    std::unique_ptr<FeedbackLoop> m_feedbackLoop;
+    juce::AudioBuffer<float> m_reverbBuffer;
 
 public:
     juce::AudioParameterFloat m_delayLength {
