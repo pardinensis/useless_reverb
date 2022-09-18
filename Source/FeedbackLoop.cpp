@@ -22,34 +22,6 @@ FeedbackLoop::FeedbackLoop(double sampleRate) {
     m_mixMatrix = MatrixUtils::createRandomHouseholderMatrix<float, NUM_CHANNELS>();
 }
 
-/*
-void redistributeSample(const juce::dsp::Matrix<float>& in, juce::dsp::Matrix<float>& out) {
-    jassert(in.getNumColumns() == 1);
-    jassert(out.getNumColumns() == 1);
-    const int numChannelsIn = in.getNumRows();
-    const int numChannelsOut = out.getNumRows();
-    
-    int channelIn = 0;
-    int channelOut = 0;
-    int scanline = 0;
-    while (scanline < numChannelsIn * numChannelsOut) {
-        int nextChannelIn = channelIn + numChannelsOut;
-        int nextChannelOut = channelOut + numChannelsIn;
-        if (nextChannelIn < nextChannelOut) {
-            float interpolationFactor = float(nextChannelIn - scanline) / numChannelsIn;
-            out(channelOut / numChannelsIn, 0) = in(channelIn / numChannelsOut, 0) * interpolationFactor;
-            channelIn = nextChannelIn;
-            scanline = nextChannelIn;
-        }
-        else {
-            float interpolationFactor = float(nextChannelOut - scanline) / numChannelsIn;
-            out(channelOut / numChannelsIn, 0) = in(channelIn / numChannelsOut, 0) * interpolationFactor;
-            channelOut = nextChannelOut;
-            scanline = nextChannelOut;
-        }
-    }
-}*/
-
 float FeedbackLoop::calculateDecayGain(float decayTime) {
     // calculate the gain factor so that the signal fades to -60dB after $decayTime seconds
     // $targetGain is -60dB or 10^-6

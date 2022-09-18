@@ -4,7 +4,7 @@
 #include <chrono>
 #include <random>
 
-static constexpr float DELAY_TIME_MAX = 0.050f;
+static constexpr float DELAY_TIME_MAX = 0.02f;
 
 Diffuser::Diffuser(double sampleRate) {
     // create delays with a randomized delay time

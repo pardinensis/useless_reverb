@@ -58,8 +58,10 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 private:
     static const int NUM_REVERB_CHANNELS = 8;
+    using Filter = juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>>;
     std::array<std::unique_ptr<Diffuser>, 4> m_diffusers;
     std::unique_ptr<FeedbackLoop> m_feedbackLoop;
+    std::unique_ptr<Filter> m_lowPassFilter;
     juce::AudioBuffer<float> m_reverbBuffer;
     juce::AudioBuffer<float> m_outputBuffer;
     juce::dsp::DryWetMixer<float> m_mixer;

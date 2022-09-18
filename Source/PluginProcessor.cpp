@@ -101,13 +101,18 @@ void UselessReverbAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
 	m_reverbBuffer.setSize(NUM_REVERB_CHANNELS, samplesPerBlock);
 	m_reverbBuffer.clear();
 
-	m_outputBuffer.setSize(2, samplesPerBlock);
+	m_outputBuffer.setSize(getTotalNumOutputChannels(), samplesPerBlock);
 
 	juce::dsp::ProcessSpec spec;
 	spec.maximumBlockSize = samplesPerBlock;
-	spec.numChannels = 2;
+	spec.numChannels = getTotalNumOutputChannels();
 	spec.sampleRate = sampleRate;
+
 	m_mixer.prepare(spec);
+
+	m_lowPassFilter = std::make_unique<Filter>(juce::dsp::IIR::Coefficients<float>::makeFirstOrderLowPass(sampleRate, 1000));
+	m_lowPassFilter->prepare(spec);
+	m_lowPassFilter->reset();
 }
 
 void UselessReverbAudioProcessor::releaseResources()
@@ -181,6 +186,11 @@ void UselessReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 		m_outputBuffer.addFrom(0, 0, m_reverbBuffer, channel, 0, numSamples, gain);
 		m_outputBuffer.addFrom(1, 0, m_reverbBuffer, channel, 0, numSamples, gain);
 	}
+
+	// add a low pass filter
+	// TODO: don't just filter the entire thing afterwards, but do it per-sample between the diffuser and the feedback loop
+	juce::dsp::AudioBlock<float> reverbBlock(m_outputBuffer);
+	m_lowPassFilter->process(juce::dsp::ProcessContextReplacing<float>(reverbBlock));
 
 	// mix the dry and wet signals
 	// in order to avoid copying the samples, the dry and wet signals are interchanged
