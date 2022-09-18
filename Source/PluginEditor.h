@@ -25,19 +25,13 @@ public:
     void resized() override;
 
 private:
-    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    std::unique_ptr<juce::Label> m_decayTimeLabel;
+    std::unique_ptr<juce::Slider> m_decayTimeSlider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_decayTimeAttachment;
 
-    juce::Label m_delayLengthLabel {"", "Delay"};
-    juce::Slider m_delayLengthSlider;
-    std::unique_ptr<SliderAttachment> m_delayLengthAttachment;
-
-    juce::Label m_feedbackLabel {"", "Feedback"};
-    juce::Slider m_feedbackSlider;
-    std::unique_ptr<SliderAttachment> m_feedbackAttachment;
-
-    juce::Label m_mixLabel {"", "Mix"};
-    juce::Slider m_mixSlider;
-    std::unique_ptr<SliderAttachment> m_mixAttachment;
+    std::unique_ptr<juce::Label> m_mixLabel;
+    std::unique_ptr<juce::Slider> m_mixSlider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_mixAttachment;
 
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.

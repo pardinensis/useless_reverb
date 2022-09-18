@@ -50,15 +50,29 @@ void redistributeSample(const juce::dsp::Matrix<float>& in, juce::dsp::Matrix<fl
     }
 }*/
 
-void FeedbackLoop::processSample(std::array<float, NUM_CHANNELS>& slice) {
-    const float delayGain = 0.85f;
-    
+float FeedbackLoop::calculateDecayGain(float decayTime) {
+    // calculate the gain factor so that the signal fades to -60dB after $decayTime seconds
+    // $targetGain is -60dB or 10^-6
+    constexpr float targetGain = 0.000001f;
+
+    // averageDelayTime is the mean delay time of all delay instances
+    constexpr float averageDelayTime = 0.5f * (DELAY_TIME_MIN + DELAY_TIME_MAX);
+
+    // the signal decays to -60dB after going through the delay $invIterations^-1 times
+    const float invIterations = averageDelayTime / decayTime;
+
+    // delayGain is the factor that the signal decays in every iteration
+    // TODO: std::powf might be too expensive here
+    return std::powf(targetGain, invIterations);
+}
+
+void FeedbackLoop::processSample(std::array<float, NUM_CHANNELS>& slice, float decayGain) {    
     float out[NUM_CHANNELS];
     float decayed[NUM_CHANNELS];
     for (int channel = 0; channel < NUM_CHANNELS; ++channel) {
         const float delayed = m_delays[channel]->read();
         out[channel] = delayed;
-        decayed[channel] = delayed * delayGain;
+        decayed[channel] = delayed * decayGain;
     }
 
     float mixed[NUM_CHANNELS];

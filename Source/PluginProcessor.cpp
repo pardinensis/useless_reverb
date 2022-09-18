@@ -24,26 +24,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout UselessReverbAudioProcessor:
 {
 	std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
+	juce::NormalisableRange<float> decayTimeRange(0.10f, 10.00f, 0.01f);
+	decayTimeRange.setSkewForCentre(2.00f);
 	params.push_back(std::make_unique<juce::AudioParameterFloat>(
-		/* parameterID */ "delayLength",
-		/* parameterName */ "Delay",
-		/* minValue */ 0.01f,
-		/* maxValue */ 2.00f,
-		/* defaultValue */ 1.00f
+		/* parameterID */ "decayTime",
+		/* parameterName */ "decayTime",
+		/* normalizableRange */ decayTimeRange,
+		/* defaultValue */ 2.00f
 		));
-	params.push_back(std::make_unique<juce::AudioParameterFloat>(
-		/* parameterID */ "feedback",
-		/* parameterName */ "Feedback",
-		/* minValue */ 0.00f,
-		/* maxValue */ 1.00f,
-		/* defaultValue */ 0.50f
-		));
+
+	juce::NormalisableRange<float> mixRange(0, 100, 1);
 	params.push_back(std::make_unique<juce::AudioParameterFloat>(
 		/* parameterID */ "mix",
-		/* parameterName */ "Mix",
-		/* minValue */ 0.00f,
-		/* maxValue */ 1.00f,
-		/* defaultValue */ 0.50f
+		/* parameterName */ "mix",
+		/* normalizableRange */ mixRange,
+		/* defaultValue */ 50.f
 		));
 
 	return { params.begin(), params.end() };
@@ -163,6 +158,8 @@ void UselessReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 	}
 
 	// diffuse the signal in the m_reverbBuffer using m_diffusers
+	const float decayTime = m_valueTreeState.getParameterAsValue("decayTime").getValue();
+	const float decayGain = FeedbackLoop::calculateDecayGain(decayTime);
 	std::array<float, NUM_REVERB_CHANNELS> slice;
 	for (int sample = 0; sample < numSamples; ++sample) {
 		for (int channel = 0; channel < NUM_REVERB_CHANNELS; ++channel) {
@@ -171,7 +168,7 @@ void UselessReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 		for (auto& diffuser : m_diffusers) {
 			diffuser->processSample(slice);
 		}
-		m_feedbackLoop->processSample(slice);
+		m_feedbackLoop->processSample(slice, decayGain);
 		for (int channel = 0; channel < NUM_REVERB_CHANNELS; ++channel) {
 			m_reverbBuffer.setSample(channel, sample, slice[channel]);
 		}
@@ -186,8 +183,9 @@ void UselessReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 	}
 
 	// mix the dry and wet signals
-	float mix = m_valueTreeState.getParameterAsValue("mix").getValue();
-	m_mixer.setWetMixProportion(1.f - mix);
+	// in order to avoid copying the samples, the dry and wet signals are interchanged
+	const float mixPercentage = m_valueTreeState.getParameterAsValue("mix").getValue();
+	m_mixer.setWetMixProportion(1.f - mixPercentage * 0.01f);
 	m_mixer.pushDrySamples(m_outputBuffer);
 	m_mixer.mixWetSamples(buffer);
 }
