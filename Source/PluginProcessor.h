@@ -21,6 +21,8 @@ public:
     //==============================================================================
     UselessReverbAudioProcessor();
     ~UselessReverbAudioProcessor() override;
+   
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameters() const;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -54,35 +56,19 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-
 private:
     static const int NUM_REVERB_CHANNELS = 8;
     std::array<std::unique_ptr<Diffuser>, 4> m_diffusers;
     std::unique_ptr<FeedbackLoop> m_feedbackLoop;
     juce::AudioBuffer<float> m_reverbBuffer;
+    juce::AudioBuffer<float> m_outputBuffer;
+    juce::dsp::DryWetMixer<float> m_mixer;
+
+    juce::UndoManager m_undoManager;
 
 public:
-    juce::AudioParameterFloat m_delayLength {
-        "delayLength",
-        "Delay",
-        0.01f,
-        2.0f,
-        1.00f
-    };
-    juce::AudioParameterFloat m_feedback {
-        "feedback",
-        "Feedback",
-        0.00f,
-        1.00f,
-        0.50f
-    };
-    juce::AudioParameterFloat m_wet {
-        "wet",
-        "Mix",
-        0.00f,
-        1.00f,
-        0.50f
-    };
+    juce::AudioProcessorValueTreeState m_valueTreeState;
+
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (UselessReverbAudioProcessor)

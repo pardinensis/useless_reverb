@@ -14,7 +14,7 @@
 //==============================================================================
 /**
 */
-class UselessReverbAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Slider::Listener
+class UselessReverbAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
     UselessReverbAudioProcessorEditor (UselessReverbAudioProcessor&);
@@ -23,17 +23,21 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
-    void sliderValueChanged(juce::Slider* slider) override;
 
 private:
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+
     juce::Label m_delayLengthLabel {"", "Delay"};
     juce::Slider m_delayLengthSlider;
+    std::unique_ptr<SliderAttachment> m_delayLengthAttachment;
 
     juce::Label m_feedbackLabel {"", "Feedback"};
     juce::Slider m_feedbackSlider;
+    std::unique_ptr<SliderAttachment> m_feedbackAttachment;
 
-    juce::Label m_wetLabel {"", "Mix"};
-    juce::Slider m_wetSlider;
+    juce::Label m_mixLabel {"", "Mix"};
+    juce::Slider m_mixSlider;
+    std::unique_ptr<SliderAttachment> m_mixAttachment;
 
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
